@@ -274,12 +274,14 @@ object BlockAPI {
   )(implicit casper: MultiParentCasper[F]): F[Option[DataWithBlockInfo]] =
     // TODO: For Produce it doesn't make sense to have multiple names
     if (isListeningNameReduced(block, immutable.Seq(sortedListeningName))) {
+      println(s"getDataWithBlockInfo>>true")
       val stateHash = ProtoUtil.postStateHash(block)
       for {
         data      <- runtimeManager.getData(stateHash)(sortedListeningName)
         blockInfo <- getLightBlockInfo[F](block)
       } yield Option[DataWithBlockInfo](DataWithBlockInfo(data, blockInfo))
     } else {
+      println(s"getDataWithBlockInfo>>false")
       none[DataWithBlockInfo].pure[F]
     }
 
@@ -811,6 +813,9 @@ object BlockAPI {
       usePreStateHash: Boolean
   ): F[ApiErr[(Seq[Par], LightBlockInfo)]] = {
 
+    val errorMessage =
+      "Could not get data at par, casper instance was not available yet."
+
     def casperResponse(
         implicit casper: MultiParentCasper[F]
     ): F[ApiErr[(Seq[Par], LightBlockInfo)]] =
@@ -818,11 +823,17 @@ object BlockAPI {
         block          <- BlockStore[F].getUnsafe(blockHash.unsafeHexToByteString)
         sortedPar      <- parSortable.sortMatch[F](par).map(_.term)
         runtimeManager <- casper.getRuntimeManager
-        data           <- getDataWithBlockInfo(runtimeManager, sortedPar, block).map(_.get)
-      } yield (data.postBlockData, data.block).asRight[Error]
-
-    val errorMessage =
-      "Could not get data at par, casper instance was not available yet."
+//        data           <- getDataWithBlockInfo(runtimeManager, sortedPar, block).map(_.get)
+        data <- getDataWithBlockInfo(runtimeManager, sortedPar, block).map({ x =>
+                 x
+               })
+//      } yield (data.postBlockData, data.block).asRight[Error]
+      } yield {
+        data match {
+          case Some(DataWithBlockInfo(d, bi)) => (d, bi).asRight[Error]
+          case None                           => s"Error: $errorMessage".asLeft
+        }
+      }
 
     EngineCell[F].read >>= (
       _.withCasper[ApiErr[(Seq[Par], LightBlockInfo)]](
@@ -831,5 +842,4 @@ object BlockAPI {
       )
     )
   }
-
 }
