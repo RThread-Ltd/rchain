@@ -50,7 +50,7 @@ object DeployGrpcServiceV1 {
         task.toTask
           .executeOn(worker)
           .fromTask
-          .logOnError("Deploy service method error.")
+          .logOnError("Deploy service method error on defer.")
           .attempt
           .map(
             _.fold(
@@ -68,7 +68,7 @@ object DeployGrpcServiceV1 {
         task.toTask
           .executeOn(worker)
           .fromTask
-          .logOnError("Deploy service method error.")
+          .logOnError("Deploy service method error on collection deferred.")
           .attempt
           .map(
             _.fold(
@@ -185,13 +185,16 @@ object DeployGrpcServiceV1 {
       def getDataAtName(request: DataAtNameByBlockQuery): Task[RhoDataResponse] =
         defer(BlockAPI.getDataAtPar[F](request.par, request.blockHash, request.usePreStateHash)) {
           r =>
-            import RhoDataResponse.Message
-            import RhoDataResponse.Message._
-            RhoDataResponse(
-              r.fold[Message](
-                Error, { case (par, block) => Payload(RhoDataPayload(par, block)) }
+            {
+              println(s"r in getDataAtName>>>> ${r}")
+              import RhoDataResponse.Message
+              import RhoDataResponse.Message._
+              RhoDataResponse(
+                r.fold[Message](
+                  Error, { case (par, block) => Payload(RhoDataPayload(par, block)) }
+                )
               )
-            )
+            }
         }
 
       def listenForContinuationAtName(

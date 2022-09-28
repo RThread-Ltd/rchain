@@ -234,7 +234,8 @@ lazy val models = (project in file("models"))
     PB.targets in Compile := Seq(
       coop.rchain.scalapb.gen(flatPackage = true, grpc = false) -> (sourceManaged in Compile).value,
       grpcmonix.generators.gen()                                -> (sourceManaged in Compile).value
-    )
+    ),
+    javaOptions in Compile ++= Seq("-Xss240k", "-XX:MaxJavaStackTraceDepth=10000", "-Xms4g", "-Xmx6g")
   )
   .dependsOn(shared % "compile->compile;test->test", rspace)
 

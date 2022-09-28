@@ -1432,22 +1432,58 @@ class DebruijnInterpreter[M[_]: Sync: Parallel: _cost](
       "toMap"       -> toMap
     )
 
-  private def evalSingleExpr(p: Par)(implicit env: Env[Par]): M[Expr] =
-    if (p.sends.nonEmpty || p.receives.nonEmpty || p.news.nonEmpty || p.matches.nonEmpty || p.unforgeables.nonEmpty || p.bundles.nonEmpty)
-      ReduceError("Error: parallel or non expression found where expression expected.")
-        .raiseError[M, Expr]
-    else
+  private def evalSingleExpr(p: Par)(implicit env: Env[Par]): M[Expr] = {
+    val (
+      pSendsNotEmpty,
+      pRecvsNotEmpty,
+      pNewsNotEmpty,
+      pMatchesNotEmpty,
+      pUnforgeablesNotEmpty,
+      pBundlesNotEmpty
+    ) =
+      (
+        p.sends.nonEmpty,
+        p.receives.nonEmpty,
+        p.news.nonEmpty,
+        p.matches.nonEmpty,
+        p.unforgeables.nonEmpty,
+        p.bundles.nonEmpty
+      )
+    if (pSendsNotEmpty || pRecvsNotEmpty || pNewsNotEmpty || pMatchesNotEmpty || pUnforgeablesNotEmpty || pBundlesNotEmpty) {
+      ReduceError(
+        s"Error: parallel or non expression found where SingleExpr expected. ${(pSendsNotEmpty, pRecvsNotEmpty, pNewsNotEmpty, pMatchesNotEmpty, pUnforgeablesNotEmpty, pBundlesNotEmpty)}, unforgeables=${p.unforgeables}"
+      ).raiseError[M, Expr]
+    } else {
       p.exprs match {
         case (e: Expr) +: Nil => evalExprToExpr(e)
         case _                => ReduceError("Error: Multiple expressions given.").raiseError[M, Expr]
       }
+    }
+  }
 
   private def evalToLong(
       p: Par
-  )(implicit env: Env[Par]): M[Long] =
-    if (p.sends.nonEmpty || p.receives.nonEmpty || p.news.nonEmpty || p.matches.nonEmpty || p.unforgeables.nonEmpty || p.bundles.nonEmpty)
-      ReduceError("Error: parallel or non expression found where expression expected.")
-        .raiseError[M, Long]
+  )(implicit env: Env[Par]): M[Long] = {
+    val (
+      pSendsNotEmpty,
+      pRecvsNotEmpty,
+      pNewsNotEmpty,
+      pMatchesNotEmpty,
+      pUnforgeablesNotEmpty,
+      pBundlesNotEmpty
+    ) =
+      (
+        p.sends.nonEmpty,
+        p.receives.nonEmpty,
+        p.news.nonEmpty,
+        p.matches.nonEmpty,
+        p.unforgeables.nonEmpty,
+        p.bundles.nonEmpty
+      )
+    if (pSendsNotEmpty || pRecvsNotEmpty || pNewsNotEmpty || pMatchesNotEmpty || pUnforgeablesNotEmpty || pBundlesNotEmpty)
+      ReduceError(
+        s"Error: parallel or non expression found where expression expected. ${(pSendsNotEmpty, pRecvsNotEmpty, pNewsNotEmpty, pMatchesNotEmpty, pUnforgeablesNotEmpty, pBundlesNotEmpty)}"
+      ).raiseError[M, Long]
     else
       p.exprs match {
         case Expr(GInt(v)) +: Nil =>
@@ -1471,13 +1507,31 @@ class DebruijnInterpreter[M[_]: Sync: Parallel: _cost](
         case _ =>
           ReduceError("Error: Integer expected, or unimplemented expression.").raiseError[M, Long]
       }
+  }
 
   private def evalToBool(
       p: Par
-  )(implicit env: Env[Par]): M[Boolean] =
-    if (p.sends.nonEmpty || p.receives.nonEmpty || p.news.nonEmpty || p.matches.nonEmpty || p.unforgeables.nonEmpty || p.bundles.nonEmpty)
-      ReduceError("Error: parallel or non expression found where expression expected.")
-        .raiseError[M, Boolean]
+  )(implicit env: Env[Par]): M[Boolean] = {
+    val (
+      pSendsNotEmpty,
+      pRecvsNotEmpty,
+      pNewsNotEmpty,
+      pMatchesNotEmpty,
+      pUnforgeablesNotEmpty,
+      pBundlesNotEmpty
+    ) =
+      (
+        p.sends.nonEmpty,
+        p.receives.nonEmpty,
+        p.news.nonEmpty,
+        p.matches.nonEmpty,
+        p.unforgeables.nonEmpty,
+        p.bundles.nonEmpty
+      )
+    if (pSendsNotEmpty || pRecvsNotEmpty || pNewsNotEmpty || pMatchesNotEmpty || pUnforgeablesNotEmpty || pBundlesNotEmpty)
+      ReduceError(
+        s"Error: parallel or non expression found where expression expected. ${(pSendsNotEmpty, pRecvsNotEmpty, pNewsNotEmpty, pMatchesNotEmpty, pUnforgeablesNotEmpty, pBundlesNotEmpty)}, unforgeables=${p.unforgeables}"
+      ).raiseError[M, Boolean]
     else
       p.exprs match {
         case Expr(GBool(b)) +: Nil =>
@@ -1499,6 +1553,7 @@ class DebruijnInterpreter[M[_]: Sync: Parallel: _cost](
           } yield result
         case _ => ReduceError("Error: Multiple expressions given.").raiseError[M, Boolean]
       }
+  }
 
   private def restrictToInt(long: Long): M[Int] =
     Sync[M].catchNonFatal(Math.toIntExact(long)).adaptError {
